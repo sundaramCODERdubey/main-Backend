@@ -1,9 +1,83 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-
+import {ApiError} from "../utils/ApiError.js";
+import{ User} from "../models/user.model.js";
+import {uploadOnCloudinary} from "../utils/cloudinary.js"
+ import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler( async(req,res) =>{
-    res.status(200).json({
-        message:"Sundaram Dubey "
-    })
-})
+  // Get user details from frontend
+  // Validation -not empty
+  // Check if user already exist : by username or emial
+  // Check for images and check for avatar
+  // upload  them to cloudinary , avatar 
+  // create user object -create in db 
+  // Removed password and refresh token field from response
+  // Check for user creation 
+  // return res
 
-export {registerUser}
+   const {fullName,email,username,password} = req.body
+   console.log("email" , email)
+
+   if(
+    [fullName,email,username,password].some((field)=>
+    field?.trim() === "")
+       
+   ){
+  throw new ApiError (400,"All fields are required")
+   }
+     
+   const existedUser=
+     User.findOne({
+        $or:[ {username}, {email}]
+     })
+
+     if(existedUser){
+        throw new ApiError (409 , "user with email or userName  already exist")
+
+     }
+      const avatarLocalPath= req.files?.avatar[0]?.path;
+
+      const coverIamgeLocalPath =   req.files?.coverImage[0]?.path;
+   
+      if(!avatarLocalPath){
+         throw new ApiError(400,"Avatar file is required")
+
+      }
+
+        const avatar =  await uploadOnCloudinary(avatarLocalPath)
+        const coverImage = await uploadOnCloudinary(coverIamgeLocalPath)
+
+       if(!avatar){
+         throw new ApiError(400 , "Avatar file is required")
+
+       }
+       
+         const user = await User.create({
+         fullName ,
+         avatar : avatar.url,
+         coverImage : coverImage?.url || "",
+         email ,
+         password ,
+         username : username.toLowerCase()
+
+        })
+
+        const createUser =  await User.findById(user._id).select(
+
+         "-password -refreshToken"
+        )
+
+        if(!createUser){
+         throw new ApiError (500,"Something went wrong during the registering the User")
+
+        }
+         
+     return res.status(201).json(
+      new ApiResponse(200 , createUser,"User Register Successfully ")
+     )
+
+
+      })
+
+export {
+   registerUser,
+}
