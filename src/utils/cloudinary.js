@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { response } from 'express';
+
 import fs from "fs";
+
 
 
 
@@ -21,14 +22,19 @@ try {
     })
 
     // files has been uploaded successfuliy
-    console.log("files is uploaded on cloudinary",response.url);
+    // console.log("files is uploaded on cloudinary",response.url);
+    // return response;
+    fs.unlinkSync(localFilePath)
     return response;
+
     
 } catch (error) {
     fs.unlinkSync(localFilePath)// remove the locally saved temporary files as the uploaded operation got failed
+     
+    
 
     return null;
-    
+   
 }
 
 }
